@@ -13,13 +13,9 @@ class DatabaseSeeder extends Seeder
     /**
      * Seed the application's database.
      */
-    public function run(): void
-    {
-        // User::factory(10)->create()
-    
-        Role::create(['name' => 'admin']);
-        Role::create(['name' => 'vendor']);
-        Role::create(['name' => 'customer']);
-    
-    }
+  public function run()
+{
+    $this->call(InitRolesAndUsersSeeder::class);
+}
+
 }

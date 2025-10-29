@@ -1,31 +1,42 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Http\Controllers\Controller;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+
 use App\Models\Vendor;
 use App\Models\Product;
 use Illuminate\Http\Request;
 
 class VendorController extends Controller
 {
-    //show all vendors
+    public function __construct()
+    {
+       
+        $this->middleware('auth');
+        $this->middleware('role:admin'); 
+    }
+
+    // ==============================
+    // Show all vendors
+    // ==============================
     public function index()
     {
         $vendors = Vendor::latest()->paginate(12);
         return view('vendors.index', compact('vendors'));
     }
 
+    // ==============================
+    // Create Vendor
+    // ==============================
     public function create()
-{
-    $this->authorize('create', Vendor::class);
-    return view('vendors.create');
-}
-   
+    {
+        $this->authorize('create', Vendor::class);
+        return view('vendors.create');
+    }
 
     public function store(Request $request)
     {
-          $this->authorize('create', Vendor::class);
+        $this->authorize('create', Vendor::class);
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
@@ -39,23 +50,28 @@ class VendorController extends Controller
         return redirect()->route('vendors.index')->with('success', 'Vendor created successfully.');
     }
 
-  
+    // ==============================
+    // Show single vendor with products
+    // ==============================
     public function show(Vendor $vendor)
     {
-        $vendor->load('products');
+        $vendor->load('products'); 
         return view('vendors.show', compact('vendor'));
     }
 
-   
+    // ==============================
+    // Edit Vendor
+    // ==============================
     public function edit(Vendor $vendor)
     {
-           $this->authorize('update', $vendor);
+        $this->authorize('update', $vendor);
         return view('vendors.edit', compact('vendor'));
     }
 
-    
     public function update(Request $request, Vendor $vendor)
     {
+        $this->authorize('update', $vendor);
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
@@ -69,38 +85,51 @@ class VendorController extends Controller
         return redirect()->route('vendors.index')->with('success', 'Vendor updated successfully.');
     }
 
-   
+    // ==============================
+    // Delete Vendor
+    // ==============================
     public function destroy(Vendor $vendor)
     {
-        // delete products belong to specific vendor
-      
         $this->authorize('delete', $vendor);
-         $vendor->products()->update(['vendor_id' => null]);
+
+        
+        $vendor->products()->update(['vendor_id' => null]);
+
         $vendor->delete();
+
         return redirect()->route('vendors.index')->with('success', 'Vendor deleted successfully.');
     }
 
-    // ربط منتج بالبائع
+    // ==============================
+    // Attach product to vendor
+    // ==============================
     public function attachProduct(Request $request, Vendor $vendor)
     {
+        $this->authorize('update', $vendor);
+
         $request->validate([
             'product_id' => 'required|exists:products,id',
         ]);
 
-        $product = Product::find($request->product_id);
+        $product = Product::findOrFail($request->product_id);
         $product->update(['vendor_id' => $vendor->id]);
 
         return back()->with('success', 'Product attached to vendor.');
     }
 
-    // فصل منتج عن البائع
+    // ==============================
+    // Detach product from vendor
+    // ==============================
     public function detachProduct(Request $request, Vendor $vendor)
     {
+        $this->authorize('update', $vendor);
+
         $request->validate([
             'product_id' => 'required|exists:products,id',
         ]);
 
-        $product = Product::find($request->product_id);
+        $product = Product::findOrFail($request->product_id);
+
         if ($product->vendor_id == $vendor->id) {
             $product->update(['vendor_id' => null]);
         }
